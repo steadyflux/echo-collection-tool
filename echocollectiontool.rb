@@ -9,8 +9,16 @@ require 'set'
 program :version, '0.0.1'
 program :description, 'ECHO Collection Explorer'
 global_option '-V','--verbose','Enable verbose mode'
+global_option '-G','--granules','Granules mode'
 
-db = SQLite3::Database.new('echo_collections.db')
+def get_db options
+  file_name = options.granules ? 'echo_granules.db' : 'echo_collections.db'
+  SQLite3::Database.new(file_name)
+end
+
+def table_name options
+  options.granules ? 'granules' : 'collections'
+end
 
 def find_xpath xpath, xml
   doc = Nokogiri::XML(xml)
@@ -22,8 +30,10 @@ command :get do |c|
   c.syntax = 'echocollectiontool get ECHO_COLLECTION_ID'
   c.example 'Try this', 'be ruby ./echocollectiontool.rb get C1346-NSIDCV0'
   c.action do |args, options|
-    db.execute("select * from collections WHERE collection_id LIKE \'%#{args[0]}%\'") do |row|
-      puts row[2]
+    id_col = options.granules ? 'granule_id' : 'collection_id'
+    result_col = options.granules ? 4 : 2
+    get_db(options).execute("select * from #{table_name options} WHERE #{id_col} LIKE \'%#{args[0]}%\'") do |row|
+      puts row[result_col]
     end
   end
 end
@@ -34,12 +44,13 @@ command :summarize do |c|
   c.option '--outfile STRING', String, 'output file'
   c.option '-i', '--ignore_case', 'ignore case when summarizing'
   c.action do |args, options|
+    xml_col = options.granules ? 4 : 2
     options.default :outfile => nil
     node_instances = Array.new
     value_hash = Hash.new(0)
     collection_values = Hash.new
-    db.execute("select * from collections") do |row|
-      fields = find_xpath(args[0], row[2])
+    get_db(options).execute("select * from #{table_name options}") do |row|
+      fields = find_xpath(args[0], row[xml_col])
       fields.each do |node|
           node_instances << node          
           v = (options.ignore_case) ? node.text.to_s.downcase.split.join(" ") : node.text.to_s.split.join(" ")

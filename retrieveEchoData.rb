@@ -5,7 +5,7 @@ require 'sqlite3'
 require 'commander/import'
 
 
-program :version, '0.0.1'
+program :version, '0.0.2'
 program :description, 'ECHO Data Retriever'
 global_option '-V','--verbose','Enable verbose mode'
 
@@ -88,31 +88,42 @@ end
   command :granules do |c|
     c.syntax = 'retrieveEchoData some granules'
     c.example 'Try this', 'be ruby ./retrieveEchoData.rb granules --collection_id C28466914-LPDAAC_ECS -V'
-    c.option '--db_out_file_name STRING', String, 'database file name (echo_granules.db by default)'
+    c.option '--db_out_file_name STRING', String, 'output database file name (echo_granules.db by default)'
+    c.option '--db_in_file_name STRING', String, 'input database file name (echo_collections.db by default)'
     c.option '--collection_id STRING', String, 'get granules from a specific collection'
     c.action do |args, options|
       
       # ::::::::::::::::::::::::::::::::::::
       # Set up the db
       db_out_file_name = options.db_out_file_name || 'echo_granules.db' 
-      File.delete(db_out_file_name) if File.exist?(db_out_file_name)
+      # File.delete(db_out_file_name) if File.exist?(db_out_file_name)
 
       db = SQLite3::Database.new(db_out_file_name)
 
-      rows = db.execute <<-SQL
-        create table granules (
-          granule_id varchar(255),
-          granule_ur varchar(255),
-          insert_date varchar(255),
-          granule_xml text
-        );
-      SQL
+      # rows = db.execute <<-SQL
+      #   create table granules (
+      #     granule_id varchar(255),
+      #     granule_ur varchar(255),
+      #     collection_id varchar(255),
+      #     insert_date varchar(255),
+      #     granule_xml text
+      #   );
+      # SQL
 
       if options.collection_id
         get_granules_from_collection db, options, options.collection_id, 200    
       else
-
-        puts 'not yet supported'
+        db_in_file_name = options.db_in_file_name || 'echo_collections.db' 
+        skip_it = true
+        SQLite3::Database.new(db_in_file_name).execute("select collection_id from collections") do |row|
+          if row[0] == 'C179002804-ORNL_DAAC'
+            skip_it = false
+          end
+          unless skip_it
+            puts "Retrieving #{row.inspect}" if options.verbose
+            get_granules_from_collection db, options, row[0], 200      
+          end
+        end
       end   
   end
 end
@@ -129,10 +140,10 @@ def get_granules_from_collection db, options, collection_id, num_granules
       # :headers => header,
       :timeout => nil
     ) 
+    puts "Retrieving #{collection_id}" if options.verbose
     
     response = resource.get :params => params
-    puts "Processing Page: #{params[:page_num]}" if options.verbose
-
+    
     xml_doc = Nokogiri::XML(response.body)
     xml_doc.xpath("//result").to_a.each do |result|
 
@@ -141,11 +152,12 @@ def get_granules_from_collection db, options, collection_id, num_granules
       record = [
         granule_id,
         granule_ur,
+        collection_id,
         Time.now.asctime,
         result.xpath(".//Granule").to_s
       ]
       puts "record: #{granule_id}, #{granule_ur}" if options.verbose
-      db.execute "insert into granules values ( ?, ?, ?, ? )", record
+      db.execute "insert into granules values ( ?, ?, ?, ?, ? )", record
     end
 end
 
