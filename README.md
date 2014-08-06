@@ -34,6 +34,9 @@ Takes a SQLite db of ECHO collection metadata and provides some tools for explor
       -V, --verbose
           Enable verbose mode
 
+      -G, --granules
+          Granules mode
+
       -h, --help
           Display help documentation
 
