@@ -10,14 +10,28 @@ program :version, '0.0.1'
 program :description, 'ECHO Collection Explorer'
 global_option '-V','--verbose','Enable verbose mode'
 global_option '-G','--granules','Granules mode'
+global_option '-D','--dif','DIF mode'
+
 
 def get_db options
-  file_name = options.granules ? 'echo_granules.db' : 'echo_collections.db'
+  file_name = 'echo_collections.db'
+
+  if options.granules 
+    file_name = 'echo_granules.db'
+  elsif options.dif
+    file_name ='dif_records.db'
+  end
   SQLite3::Database.new(file_name)
 end
 
 def table_name options
-  options.granules ? 'granules' : 'collections'
+  table = 'collections'
+  if options.granules 
+    table = 'granules'
+  elsif options.dif
+    table = 'dif_records'
+  end
+  table
 end
 
 def find_xpath xpath, xml
