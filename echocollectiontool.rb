@@ -81,7 +81,9 @@ command :summarize do |c|
 
     output = ""
 
-    value_hash.each {|key, value| output << "#{key} : #{value}\n" }
+    value_hash = value_hash.sort_by {|k, v| v}
+    value_hash = Hash[value_hash.to_a.reverse]
+    value_hash.each {|key, value| output << "#{key} ||| #{value}\n" }
     output << "-------------------\n"
     if options.verbose
       output <<  "Summary:\n"
