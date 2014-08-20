@@ -87,7 +87,12 @@ command :summarize do |c|
     output << "-------------------\n"
     if options.verbose
       output <<  "Summary:\n"
-      collection_values.each {|key, value| output << "#{key} : #{value.inspect}\n" }
+      collection_values.each do |key, value|
+        value.each do |v|
+          output << "#{key} : #{v}\n" 
+        end 
+        # output << "#{key} : #{value.inspect}\n" 
+      end
     end
 
     if options.outfile
@@ -99,4 +104,72 @@ command :summarize do |c|
     end
 
   end
+
+  command :snippet do |c|
+    c.syntax = 'echocollectiontool snippet'
+    c.example 'Try this', 'be ruby ./echocollectiontool.rb snippet "/Collection/CollectionDataType"'
+    c.action do |args, options|
+      xml_col = options.granules ? 4 : 2
+      options.default :outfile => nil
+      puts get_random_snippet(get_db(options), args[0], xml_col, table_name(options))
+    end
+  end
+
+  def get_random_snippet(db, xpath, xml_col, table, find_first = false)
+    rand_row = find_first ? 1 : Random.rand(10000)
+    count = 0
+    output = ""
+    db.execute("select * from #{table}") do |row|
+      fields = find_xpath(xpath, row[xml_col])
+      fields.each do |node|
+        count += 1
+        if count == rand_row
+          output << xpath << " ||| " << row[0] << " ||| " << row[2] << "\n" << node.to_s << "\n\n----------\n\n"
+          return output
+        end
+      end
+    end
+    # if we get here ... try again with rand_row = 1, but only do it once
+    unless find_first 
+      puts "trying again: #{xpath}"
+      get_random_snippet(db, xpath, xml_col, table, true)
+    end
+  end
+
+  command :compile_snippets do |c|
+    c.syntax = 'echocollectiontool compile_snippets -G --inputFile file --outfile file'
+    c.option '--outfile STRING', String, 'output file'
+    c.option '--inputFile STRING', String, 'input file'
+    c.action do |args, options|
+      xml_col = options.granules ? 4 : 2
+      options.default :outfile => nil
+      output = ""
+      db = get_db(options)
+      table = table_name(options)
+      # for each xpath in the input file
+      print "Working"
+
+      File.readlines(options.inputFile).each do |xpath|
+        begin
+          print "."
+          output << get_random_snippet(db, xpath.strip, xml_col, table)
+        rescue Exception => e
+          puts " caught exception #{e}! carrying on "
+        end
+      end
+      
+
+
+      puts "Done"
+      if options.outfile
+        File.open(options.outfile, "w") do |aFile|
+          aFile.puts output
+        end
+      else
+        puts output
+      end
+    end
+
+  end
+
 end
