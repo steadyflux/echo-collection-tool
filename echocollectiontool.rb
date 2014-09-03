@@ -108,15 +108,17 @@ command :summarize do |c|
   command :snippet do |c|
     c.syntax = 'echocollectiontool snippet'
     c.example 'Try this', 'be ruby ./echocollectiontool.rb snippet "/Collection/CollectionDataType"'
+    c.option '--find_any'
     c.action do |args, options|
       xml_col = options.granules ? 4 : 2
       options.default :outfile => nil
-      puts get_random_snippet(get_db(options), args[0], xml_col, table_name(options))
+      puts get_random_snippet(get_db(options), args[0], xml_col, table_name(options), options.find_any)
     end
   end
 
   def get_random_snippet(db, xpath, xml_col, table, find_first = false)
-    rand_row = find_first ? 1 : Random.rand(10000)
+    rand_row = find_first ? 1 : Random.rand(100000)
+    puts "finding any ... " if find_first
     count = 0
     output = ""
     db.execute("select * from #{table}") do |row|
