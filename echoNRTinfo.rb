@@ -1,6 +1,7 @@
 require 'rest_client'
 require 'nokogiri'
 require 'commander/import'
+require 'time'
 
 program :version, '0.0.1'
 program :description, 'ECHO NRT Info Retrieval'
