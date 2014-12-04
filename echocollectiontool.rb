@@ -45,10 +45,18 @@ command :get do |c|
   c.example 'Try this', 'be ruby ./echocollectiontool.rb get C1346-NSIDCV0'
   c.action do |args, options|
     id_col = options.granules ? 'granule_id' : 'collection_id'
-    result_col = options.granules ? 4 : 2
-    get_db(options).execute("select * from #{table_name options} WHERE #{id_col} LIKE \'%#{args[0]}%\'") do |row|
-      puts row[result_col]
+    if options.dif
+      id_col = 'entry_id'
     end
+    result_col = options.granules ? 4 : 3
+    count = 0
+    get_db(options).execute("select * from #{table_name options} WHERE #{id_col} LIKE \'%#{args[0]}%\'") do |row|
+      3.times { puts "--------"}
+      puts row[result_col]
+      3.times { puts "--------"}
+      count += 1
+    end
+    puts "total count: #{count}"
   end
 end
 
@@ -57,13 +65,25 @@ command :summarize do |c|
   c.example 'Try this', 'be ruby ./echocollectiontool.rb summarize "/Collection/CollectionDataType"'
   c.option '--outfile STRING', String, 'output file'
   c.option '-i', '--ignore_case', 'ignore case when summarizing'
+  c.option '-p STRING', '--provider STRING', String, 'provider name'
   c.action do |args, options|
-    xml_col = options.granules ? 4 : 2
+    xml_col = options.granules ? 4 : 3
+    if options.dif 
+      xml_col = 2
+    end
     options.default :outfile => nil
     node_instances = Array.new
     value_hash = Hash.new(0)
     collection_values = Hash.new
-    get_db(options).execute("select * from #{table_name options}") do |row|
+    stmt = "select * from #{table_name options}"
+
+    if options.provider && options.granules
+      stmt << " where collection_id LIKE '%#{options.provider}'"
+    elsif options.provider
+      stmt << " where provider = '#{options.provider}'" if options.provider 
+    end
+    
+    get_db(options).execute(stmt) do |row|
       fields = find_xpath(args[0], row[xml_col])
       fields.each do |node|
           node_instances << node          
@@ -117,7 +137,7 @@ command :summarize do |c|
   end
 
   def get_random_snippet(db, xpath, xml_col, table, find_first = false)
-    rand_row = find_first ? 1 : Random.rand(100000)
+    rand_row = find_first ? 1 : Random.rand(3700)
     puts "finding any ... " if find_first
     count = 0
     output = ""
@@ -126,7 +146,9 @@ command :summarize do |c|
       fields.each do |node|
         count += 1
         if count == rand_row
-          output << xpath << " ||| " << row[0] << " ||| " << row[2] << "\n" << node.to_s << "\n\n----------\n\n"
+          output << xpath << " ||| " << row[0] << " ||| " 
+          output << row[2] if xml_col == 4
+          output << "\n" << node.to_s << "\n\n----------\n\n"
           return output
         end
       end

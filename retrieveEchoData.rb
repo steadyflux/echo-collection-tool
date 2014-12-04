@@ -18,8 +18,24 @@ BASE_URL = 'https://api.echo.nasa.gov/catalog-rest/echo_catalog/'
 
 #token from 6.5.2014
 # generatetoken.sh ops ~/work/bin/gentoken.xml
-header = { 'Echo-Token' => 'NOT A REAL TOKEN'}
+header = { 'Echo-Token' => 'NO TOKEN'}
 
+def get_doc xml
+  doc = Nokogiri::XML(xml)
+  doc.remove_namespaces!
+end
+
+def get_dif_id doc
+  doc.xpath("/Collection/AssociatedDIFs/DIF/EntryId").text
+end
+
+def get_short_name doc
+  doc.xpath("/Collection/ShortName").text
+end
+
+def get_datasetID doc
+  doc.xpath("/Collection/DataSetId").text
+end
 
 command :collections do |c|
   c.syntax = 'retrieveEchoData collections'
@@ -37,8 +53,12 @@ command :collections do |c|
     rows = db.execute <<-SQL
       create table collections (
         collection_id varchar(255),
+        provider varchar(255),
         insert_date varchar(255),
-        collection_xml text
+        collection_xml text,
+        associated_dif varchar(255),
+        short_name varchar(255),
+        datasetID varchar(255)
       );
     SQL
 
@@ -71,13 +91,19 @@ command :collections do |c|
           collection_id = result["echo_dataset_id"]
 
           result.xpath("Collection").to_a.each do |collection|
+            doc = get_doc(collection.to_s)
+
             record = [
               collection_id,
+              collection_id.split('-')[1],
               Time.now.asctime,
-              collection.to_s
+              collection.to_s,
+              get_dif_id(doc),
+              get_short_name(doc),
+              get_datasetID(doc)
             ]
             puts "record: #{collection_id}" if options.verbose
-            db.execute "insert into collections values ( ?, ?, ? )", record
+            db.execute "insert into collections values ( ?, ?, ?, ?, ?, ?, ? )", record
           end
         end
         keep_going = options.quick_test ? false : ("false" == response.headers[:echo_cursor_at_end])
