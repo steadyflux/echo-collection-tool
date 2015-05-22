@@ -1,0 +1,14 @@
+base_serf_url: 'http://gcmdservices.gsfc.nasa.gov/mws/serf/'
+base_dif_url: 'http://gcmdservices.gsfc.nasa.gov/mws/dif/'
+base_cmr_search_url: 'https://cmr.earthdata.nasa.gov:443/search/'
+
+token: CHANGEME
+
+urs_user: CHANGEME
+urs_pw: CHANGEME
+
+
+base_ingest_url: 'https://testbed.echo.nasa.gov/catalog-rest/providers/'
+
+ingest_token: CHANGEME
+ingest_provider: CHANGEME

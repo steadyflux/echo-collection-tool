@@ -9,3 +9,4 @@ gem 'georuby'
 gem 'highline'
 gem "commander"
 gem 'sqlite3', '~> 1.3.9'
+gem 'addressable'

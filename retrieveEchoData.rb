@@ -3,7 +3,7 @@ require 'rest_client'
 require 'nokogiri'
 require 'sqlite3'
 require 'commander/import'
-
+require 'yaml'
 
 program :version, '0.0.2'
 program :description, 'ECHO Data Retriever'
@@ -11,14 +11,8 @@ global_option '-V','--verbose','Enable verbose mode'
 global_option '-G','--granules','Granules mode'
 global_option '--quick_test', 'get first page with 10 results'
 
-# ::::::::::::::::::::::::::::::::::::
-# Set up the query
-
-BASE_URL = 'https://api.echo.nasa.gov/catalog-rest/echo_catalog/'
-
-#token from 6.5.2014
-# generatetoken.sh ops ~/work/bin/gentoken.xml
-header = { 'Echo-Token' => 'NO TOKEN'}
+@cnf = YAML.load_file('ect.config.yml')
+header = { 'Echo-Token' => @cnf['token']}
 
 def get_doc xml
   doc = Nokogiri::XML(xml)
@@ -71,8 +65,8 @@ command :collections do |c|
     }
 
     resource = RestClient::Resource.new(
-      BASE_URL + 'datasets.echo10',
-      # :headers => header,
+      @cnf['base_cmr_search_url'] + 'collections.echo10',
+      :headers => header,
       :timeout => nil
     )    
 
@@ -82,13 +76,16 @@ command :collections do |c|
     keep_going = true
     while keep_going do
       response = resource.get :params => params
-        puts "Processing Page: #{params[:page_num]}" if options.verbose
+        puts "Processing Page: #{params[:page_num]}"
         params[:page_num] = params[:page_num] + 1 
 
         xml_doc = Nokogiri::XML(response.body)
+        result_count = xml_doc.xpath("//hits")[0].text.to_i
+        puts "Total: #{result_count}"
+
         xml_doc.xpath("//result").to_a.each do |result|
 
-          collection_id = result["echo_dataset_id"]
+          collection_id = result["concept-id"]
 
           result.xpath("Collection").to_a.each do |collection|
             doc = get_doc(collection.to_s)
@@ -106,7 +103,8 @@ command :collections do |c|
             db.execute "insert into collections values ( ?, ?, ?, ?, ?, ?, ? )", record
           end
         end
-        keep_going = options.quick_test ? false : ("false" == response.headers[:echo_cursor_at_end])
+        
+        keep_going = options.quick_test ? false : ((params[:page_num]-1)*2000 <= result_count)
     end
   end
 end
@@ -123,29 +121,29 @@ command :granules do |c|
     # ::::::::::::::::::::::::::::::::::::
     # Set up the db
     db_out_file_name = options.db_out_file_name || 'echo_granules.db' 
-    # File.delete(db_out_file_name) if File.exist?(db_out_file_name)
+    File.delete(db_out_file_name) if File.exist?(db_out_file_name)
 
     db = SQLite3::Database.new(db_out_file_name)
 
-    # rows = db.execute <<-SQL
-    #   create table granules (
-    #     granule_id varchar(255),
-    #     granule_ur varchar(255),
-    #     collection_id varchar(255),
-    #     insert_date varchar(255),
-    #     granule_xml text
-    #   );
-    # SQL
+    rows = db.execute <<-SQL
+      create table granules (
+        granule_id varchar(255),
+        granule_ur varchar(255),
+        collection_id varchar(255),
+        insert_date varchar(255),
+        granule_xml text
+      );
+    SQL
 
     if options.collection_id
       get_granules_from_collection db, options, options.collection_id, 200    
     else
       db_in_file_name = options.db_in_file_name || 'echo_collections.db' 
-      skip_it = true
+      skip_it = false
       SQLite3::Database.new(db_in_file_name).execute("select collection_id from collections") do |row|
-        if row[0] == 'C179002804-ORNL_DAAC'
-          skip_it = false
-        end
+        # if row[0] == 'C179002804-ORNL_DAAC'
+        #   skip_it = false
+        # end
         unless skip_it
           puts "Retrieving #{row.inspect}" if options.verbose
           get_granules_from_collection db, options, row[0], 200      
@@ -173,7 +171,7 @@ command :run_query do |c|
       :page_num => 1
     }
     resource = RestClient::Resource.new(
-      BASE_URL + "granules",
+      @cnf['base_cmr_search_url'] + "granules",
       # :headers => header,
       :timeout => nil
     ) 
@@ -215,7 +213,7 @@ def get_granules_from_collection db, options, collection_id, num_granules
     }
 
     resource = RestClient::Resource.new(
-      BASE_URL + "granules.echo10",
+      @cnf['base_cmr_search_url'] + "granules.echo10",
       # :headers => header,
       :timeout => nil
     ) 

@@ -1,6 +1,8 @@
 *.gem
 *.rbc
 *.pdf
+*.yml
+*.old
 /.config
 /coverage/
 /InstalledFiles
@@ -12,6 +14,7 @@
 /input
 /output
 scratch
+temp
 
 ## Specific to RubyMotion:
 .dat*
