@@ -224,7 +224,7 @@ def get_granules_from_collection db, options, collection_id, num_granules
     xml_doc = Nokogiri::XML(response.body)
     xml_doc.xpath("//result").to_a.each do |result|
 
-      granule_id = result["echo_granule_id"]
+      granule_id = result.xpath('@concept-id').text
       granule_ur = result.xpath(".//GranuleUR").text
       record = [
         granule_id,
