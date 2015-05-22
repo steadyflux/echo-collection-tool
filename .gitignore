@@ -3,6 +3,7 @@
 *.pdf
 *.yml
 *.old
+*.txt
 /.config
 /coverage/
 /InstalledFiles
