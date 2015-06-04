@@ -14,7 +14,8 @@ global_option '-V','--verbose','Enable verbose mode'
 
 @cnf = YAML.load_file('ect.config.yml')
 header = { 'Echo-Token' => @cnf['ingest_token']}
-ingest_url = @cnf['base_ingest_url']+@cnf['ingest_provider']+'/datasets/'
+# ingest_url = @cnf['base_ingest_url']+@cnf['ingest_provider']+'/datasets/'
+ingest_url = @cnf['base_ingest_url']+@cnf['ingest_provider']+'/collections/'
 
 command :test do |c|
   c.action do |args, options|
@@ -108,7 +109,7 @@ command :add_difs do |c|
     count = (options.startLine || 0)
     linect = 0
     outfile = File.open(options.outputFile, "w") if options.outputFile
-    File.readlines('dif_id_list').each do |eid|
+    File.readlines('dif_id_list.txt').each do |eid|
       linect += 1
       if linect > (options.startLine || 0)
         # if prng1.rand(1000) > 900
@@ -124,7 +125,7 @@ command :add_difs do |c|
 
               begin
                 tries ||= 2
-                RestClient.put route, row[table_info[2]], header.merge({"Content-Type" => 'application/xml', "Xml-Mime-Type" => 'application/dif+xml'})
+                RestClient.put route, row[table_info[2]], header.merge({"Content-Type" => 'application/dif+xml'})
               rescue => e
                 retry unless (tries -= 1).zero?
                 # unless agree("tried twice, should i continue? (yes or no)")

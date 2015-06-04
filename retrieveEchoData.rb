@@ -31,6 +31,10 @@ def get_datasetID doc
   doc.xpath("/Collection/DataSetId").text
 end
 
+def get_long_name doc
+  doc.xpath("/Collection/LongName").text
+end
+
 command :collections do |c|
   c.syntax = 'retrieveEchoData collections'
   c.example 'Try this', 'be ruby ./retrieveEchoData.rb collections'
@@ -52,7 +56,8 @@ command :collections do |c|
         collection_xml text,
         associated_dif varchar(255),
         short_name varchar(255),
-        datasetID varchar(255)
+        datasetID varchar(255),
+        long_name varchar(255)
       );
     SQL
 
@@ -71,7 +76,6 @@ command :collections do |c|
     )    
 
     # ::::::::::::::::::::::::::::::::::::
-    # loop-de-loop
 
     keep_going = true
     while keep_going do
@@ -97,10 +101,11 @@ command :collections do |c|
               collection.to_s,
               get_dif_id(doc),
               get_short_name(doc),
-              get_datasetID(doc)
+              get_datasetID(doc),
+              get_long_name(doc)
             ]
             puts "record: #{collection_id}" if options.verbose
-            db.execute "insert into collections values ( ?, ?, ?, ?, ?, ?, ? )", record
+            db.execute "insert into collections values ( ?, ?, ?, ?, ?, ?, ?, ? )", record
           end
         end
         
