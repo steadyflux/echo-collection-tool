@@ -17,17 +17,6 @@ header = { 'Echo-Token' => @cnf['ingest_token']}
 # ingest_url = @cnf['base_ingest_url']+@cnf['ingest_provider']+'/datasets/'
 ingest_url = @cnf['base_ingest_url']+@cnf['ingest_provider']+'/collections/'
 
-command :test do |c|
-  c.action do |args, options|
-    uri = Addressable::URI.parse(@cnf['base_ingest_url'])
-    s = "Long-Term Ecological Research (LTER)/AND012: Tree Permanent Plots of the Pacific Northwest"
-    
-    s = URI.escape s
-    
-    puts s.gsub(/[\/]/, '%2F')
-  end
-end
-
 command :clear_all do |c|
   c.syntax = 'ingesttool clear_all'
   c.example 'Try this', 'be ruby ./ingesttool.rb clear_all'
@@ -101,21 +90,21 @@ command :add_difs do |c|
   c.example 'Try this', 'be ruby ./ingesttool add_difs'
   c.option '--inputFile STRING', String, 'input dif id list'
   c.option '--startLine INTEGER', Integer, 'start line'
+  c.option '--stopLine INTEGER', Integer, 'stop line'
   c.option '--outputFile STRING', String, 'output File'
   c.action do |args, options|
     options.dif = true
     table_info = ToolHelpers.get_table_info options
     prng1 = Random.new()
-    count = (options.startLine || 0)
+    count = (options.startLine || 1)
     linect = 0
     outfile = File.open(options.outputFile, "w") if options.outputFile
     File.readlines('dif_id_list.txt').each do |eid|
       linect += 1
-      if linect > (options.startLine || 0)
-        # if prng1.rand(1000) > 900
-          count += 1
+      if linect >= (options.startLine || 0) && linect < (options.stopLine+1 || 50000)
           puts "#{count}. #{eid.chop!}"
           outfile.puts "#{count}. #{eid}" if outfile
+          count += 1
           ToolHelpers.get_db(options).execute("select * from #{table_info[0]} WHERE #{table_info[1]} LIKE \'%#{eid}%\'") do |row|
             fields = ToolHelpers.find_xpath('//Entry_Title', row[table_info[2]])
             datasetId = ToolHelpers.get_clean_string fields.text
@@ -136,7 +125,6 @@ command :add_difs do |c|
               end
               outfile.flush if outfile
             end
-          # end
         end
       end
     end
