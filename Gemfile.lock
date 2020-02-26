@@ -1,6 +1,8 @@
 GEM
   remote: http://rubygems.org/
   specs:
+    addressable (2.7.0)
+      public_suffix (>= 2.0.2, < 5.0)
     coderay (1.1.0)
     commander (4.2.0)
       highline (~> 1.6.11)
@@ -9,14 +11,15 @@ GEM
     json (1.7.7)
     method_source (0.8.2)
     mime-types (2.3)
-    mini_portile (0.6.0)
+    mini_portile2 (2.4.0)
     netrc (0.7.7)
-    nokogiri (1.6.3.1)
-      mini_portile (= 0.6.0)
+    nokogiri (1.10.8)
+      mini_portile2 (~> 2.4.0)
     pry (0.9.12.6)
       coderay (~> 1.0)
       method_source (~> 0.8)
       slop (~> 3.4)
+    public_suffix (4.0.3)
     rest-client (1.7.2)
       mime-types (>= 1.16, < 3.0)
       netrc (~> 0.7)
@@ -27,6 +30,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  addressable
   commander
   georuby
   highline
